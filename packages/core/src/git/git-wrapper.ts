@@ -37,7 +37,7 @@ export async function commit(projectPath: string, message: string): Promise<stri
 /**
  * Return the last n log entries for the project store.
  */
-export async function log(projectPath: string, n: number = 10): Promise<GitLogEntry[]> {
+export async function log(projectPath: string, n = 10): Promise<GitLogEntry[]> {
   try {
     const git = simpleGit(projectPath)
     const result = await git.log({ maxCount: n })
