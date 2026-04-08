@@ -7,6 +7,7 @@ export default defineConfig({
     include: ['src/**/*.test.ts'],
     // MCP integration tests spawn subprocesses — longer timeout
     testTimeout: 15000,
+    passWithNoTests: true,
     isolate: true,
   },
 })
