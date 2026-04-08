@@ -3,6 +3,11 @@
  *
  * Writes the MCP server config for the selected editor and exports
  * flat context files to the project root for editors that don't support MCP.
+ *
+ * Project root is ALWAYS the current working directory. If the stored
+ * registry path differs, it is updated to the cwd (so running
+ * `mexai connect` from the quality-lens directory will register and
+ * write configs there, regardless of where `mexai init` was run from).
  */
 
 import * as fs from 'node:fs'
@@ -13,6 +18,8 @@ import {
   exportAgentsMd,
   exportClaudeMd,
   exportCursorRules,
+  linkPath,
+  writeProjectLink,
 } from '@mexai/core'
 import { success, info, warn, blank, header, label } from '../utils/output.js'
 import { handleError } from '../utils/error-handler.js'
@@ -41,7 +48,18 @@ const MCP_SERVER_ENTRY = {
 
 export async function runConnect(options: ConnectOptions): Promise<void> {
   try {
-    const entry = resolveFromOptions(options)
+    const entry = await resolveFromOptions(options)
+
+    // The project root is always the current working directory.
+    // If init was run from a different (often broader) directory, we update
+    // the registry path to the specific project directory the user is in now.
+    const projectRoot = process.cwd()
+
+    if (entry.path !== projectRoot) {
+      linkPath(entry.slug, projectRoot)
+      info(`Updated project path: ${entry.path} → ${projectRoot}`)
+    }
+    writeProjectLink(projectRoot, entry.slug)
 
     header('mexai connect')
     info(`Connecting project: ${entry.name}`)
@@ -87,7 +105,7 @@ export async function runConnect(options: ConnectOptions): Promise<void> {
       : [editor]
 
     for (const target of targets) {
-      writeMcpConfig(target, entry.path)
+      writeMcpConfig(target, projectRoot)
       success(`Configured MCP for ${target}`)
     }
 
@@ -99,9 +117,9 @@ export async function runConnect(options: ConnectOptions): Promise<void> {
       const claudeMd = exportClaudeMd(entry.slug)
       const cursorRules = exportCursorRules(entry.slug)
 
-      fs.writeFileSync(path.join(entry.path, 'AGENTS.md'), agentsMd, 'utf8')
-      fs.writeFileSync(path.join(entry.path, 'CLAUDE.md'), claudeMd, 'utf8')
-      fs.writeFileSync(path.join(entry.path, '.cursorrules'), cursorRules, 'utf8')
+      fs.writeFileSync(path.join(projectRoot, 'AGENTS.md'), agentsMd, 'utf8')
+      fs.writeFileSync(path.join(projectRoot, 'CLAUDE.md'), claudeMd, 'utf8')
+      fs.writeFileSync(path.join(projectRoot, '.cursorrules'), cursorRules, 'utf8')
 
       success('AGENTS.md written')
       success('CLAUDE.md written')
@@ -109,7 +127,8 @@ export async function runConnect(options: ConnectOptions): Promise<void> {
     }
 
     blank()
-    label('Project root', entry.path)
+    label('Project', entry.name)
+    label('Project root', projectRoot)
     blank()
     info('Run  mexai status  to verify the connection.')
     warn('Restart your AI editor for MCP changes to take effect.')

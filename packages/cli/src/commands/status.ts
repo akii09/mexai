@@ -21,7 +21,7 @@ interface StatusOptions {
 
 export async function runStatus(options: StatusOptions): Promise<void> {
   try {
-    const entry = resolveFromOptions(options)
+    const entry = await resolveFromOptions(options)
     const diff = readPendingDiff(entry.slug)
     const storePath = projectStorePath(entry.slug)
     const dirty = await gitIsDirty(storePath).catch(() => false)

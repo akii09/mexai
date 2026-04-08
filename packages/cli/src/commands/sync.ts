@@ -37,7 +37,7 @@ export async function runSync(options: SyncOptions): Promise<void> {
       return
     }
 
-    const entry = resolveFromOptions(options)
+    const entry = await resolveFromOptions(options)
 
     header(`mexai sync — ${entry.name}`)
     blank()

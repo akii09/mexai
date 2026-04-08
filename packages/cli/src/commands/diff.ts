@@ -20,9 +20,9 @@ interface DiffOptions {
   discard?: boolean
 }
 
-export function runDiff(options: DiffOptions): void {
+export async function runDiff(options: DiffOptions): Promise<void> {
   try {
-    const entry = resolveFromOptions(options)
+    const entry = await resolveFromOptions(options)
     const diff = readPendingDiff(entry.slug)
 
     if (options.discard === true) {

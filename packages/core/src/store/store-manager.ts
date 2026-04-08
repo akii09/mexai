@@ -349,6 +349,47 @@ export function setRemote(slug: string, remoteUrl: string): void {
 }
 
 // ---------------------------------------------------------------------------
+// Project link file
+// ---------------------------------------------------------------------------
+
+/** The filename written to a project directory to link it to a mexai project. */
+export const PROJECT_LINK_FILE = 'mexai.json'
+
+/**
+ * Write a mexai.json link file into a project directory.
+ * This is the most reliable way to associate a directory with a project.
+ * Format: { "version": 1, "project": "<slug>" }
+ */
+export function writeProjectLink(dir: string, slug: string): void {
+  const filePath = path.join(dir, PROJECT_LINK_FILE)
+  const content = JSON.stringify({ version: 1, project: slug }, null, 2) + '\n'
+  fs.writeFileSync(filePath, content, 'utf8')
+}
+
+/**
+ * Read a mexai.json link file from a directory.
+ * Returns the project slug, or undefined if the file doesn't exist or is invalid.
+ */
+export function readProjectLink(dir: string): string | undefined {
+  const filePath = path.join(dir, PROJECT_LINK_FILE)
+  try {
+    const raw = fs.readFileSync(filePath, 'utf8')
+    const parsed = JSON.parse(raw) as unknown
+    if (
+      typeof parsed === 'object' &&
+      parsed !== null &&
+      'project' in parsed &&
+      typeof (parsed as Record<string, unknown>).project === 'string'
+    ) {
+      return (parsed as Record<string, unknown>).project as string
+    }
+  } catch {
+    // file missing or invalid — return undefined
+  }
+  return undefined
+}
+
+// ---------------------------------------------------------------------------
 // Private helpers
 // ---------------------------------------------------------------------------
 

@@ -91,6 +91,9 @@ export {
   linkPath,
   setRemote,
   projectStorePath,
+  writeProjectLink,
+  readProjectLink,
+  PROJECT_LINK_FILE,
 } from './store/store-manager.js'
 
 export type { InitProjectOptions } from './store/store-manager.js'

@@ -9,9 +9,9 @@
     "directory": "packages/cli"
   },
   "bin": {
-    "mexai": "./dist/index.cjs"
+    "mexai": "./dist/index.js"
   },
-  "main": "./dist/index.cjs",
+  "main": "./dist/index.js",
   "files": ["dist"],
   "scripts": {
     "build": "tsup",

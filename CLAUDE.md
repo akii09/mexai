@@ -11,7 +11,7 @@
 
 **Who builds it:** Solo developer (Akash), OSS project, MIT license.
 
-**Current phase:** Architecture finalized. Beginning Phase 1 (Foundation) implementation.
+**Current phase:** Phases 1–3 complete. CLI fully implemented (15 commands). Beginning Phase 4 (MCP Server).
 
 **Stack:** TypeScript + Node.js 20+ + pnpm workspaces + Turborepo + tsup + Vitest
 
@@ -59,6 +59,7 @@ mexai/
 - `packages/core/src/store/store-manager.ts` — single source of truth for all store operations
 - `packages/core/src/diff/diff-engine.ts` — most critical business logic, highest test coverage required
 - `packages/core/src/store/registry.ts` — project ↔ path mapping, workspace auto-detection
+- `packages/cli/src/utils/resolve.ts` — async 5-step project resolution chain (flag → mexai.json → path match → active → interactive picker)
 - `packages/mcp/src/server.ts` — MCP server entrypoint
 - `packages/cli/src/index.ts` — CLI entrypoint
 
@@ -93,7 +94,8 @@ pnpm changeset      # create a changeset
 **When adding a CLI command:**
 - All business logic stays in core
 - CLI handler calls core, formats output, returns
-- Use `resolveProject()` for project detection — never read registry directly
+- Use `resolveFromOptions()` (async) for project detection — never read registry directly
+- Call `writeProjectLink()` after any operation that establishes or updates a project path
 
 **When adding an MCP tool:**
 - Input validated with Zod before any core call

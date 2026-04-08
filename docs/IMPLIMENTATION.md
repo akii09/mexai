@@ -119,6 +119,9 @@ Tasks:
 □ listProjects() — returns ProjectSummary[] from all slugs in registry
 □ registerPath() — writes path entry to registry.json (called by init)
 □ linkPath() — updates existing registry entry (called by mexai link)
+□ writeProjectLink(dir, slug) — writes mexai.json to a directory, linking it to a slug
+□ readProjectLink(dir) — reads mexai.json from a directory, returns slug or undefined
+□ findProjectLinkInTree(startDir) — walks up from startDir until it finds mexai.json or hits home/root
 □ resolveProject() — full resolution chain:
     1. workspacePath prefix match against registry
     2. stale path recovery (folder name heuristic, surfaces error message only)
@@ -393,6 +396,32 @@ Tasks:
 
 **Why before MCP:** The CLI is the primary interface for context management. Getting it right first means the MCP server only has to expose what already works.
 
+### 3.0 Project Auto-Detection & Resolution
+
+The resolution chain used by all commands that need to know "which project am I in?":
+
+```
+Tasks:
+□ resolveFromOptions(opts) — async, 5-step resolution chain:
+    1. Explicit --project / --slug flag (highest priority)
+    2. mexai.json walk-up from cwd — definitive auto-detection, like .git
+    3. Registry path prefix match against cwd
+    4. Active project fallback
+    5. Interactive arrow-key list via inquirer (TTY only)
+    6. Error: "Could not determine which project to use"
+□ findProjectLinkInTree(startDir) — walks up directories looking for mexai.json
+□ pickProject() — inquirer list prompt showing all projects with arrow-key selection
+    - auto-selects if only one project exists
+    - aborts with error if not a TTY and project still undetermined
+□ writeProjectLink() called after: init, map, connect, link — keeps mexai.json fresh
+```
+
+This chain is the fix for the "wrong project shown in status" bug:
+previously `pdfx` (which had quality-lens as its stored path) would match via path prefix,
+shadowing the intended `quality-lens` project. mexai.json makes the correct project explicit.
+
+---
+
 ### 3.1 CLI Scaffold
 
 ```
@@ -413,23 +442,26 @@ Tasks:
 Tasks:
 □ Interactive mode (default):
     - Detect cwd as project root
+    - Warn if running from home directory (almost always a mistake)
     - Prompt: project name (default: folder name)
     - Prompt: domain
     - Prompt: tech stack (comma-separated)
     - Prompt: identity (2-3 sentences)
     - Prompt: current state
-    - Prompt: rules setup (Y/n)
-      → Y: open $EDITOR with rules template, wait for save
-      → n: copy starter rules template
-    - Call StoreManager.initProject()
-    - Call StoreManager.registerPath()
-    - Show success output with next steps
+    - Call initProject()
+    - Write mexai.json to cwd via writeProjectLink() — enables auto-detection
+    - gitInit() + gitCommit() on the project store
+    - Auto-scan the codebase via scanCodebase() + generateDraft() → write to codebase.md
+      (non-fatal if scan fails — user can run mexai map manually)
+    - Show AI bootstrap prompt: a boxed message the user pastes into their AI editor
+      instructing the AI to use context_save to fill in identity, decisions, open threads,
+      current state, key files, and conventions — then run mexai diff + mexai commit to apply
 □ Non-interactive mode (-y flag):
     - Accept --name, --stack, --domain flags
     - Skip all prompts, use defaults
     - Show success output
 □ Starter rules template (embedded in CLI package)
-□ Integration test: init in tmp dir produces correct store structure
+□ Integration test: init in tmp dir produces correct store structure + mexai.json written
 ```
 
 ---
@@ -616,6 +648,8 @@ Tasks:
 - `mexai init` → `mexai map` → `mexai connect cursor` → `mexai status` runs without errors
 - Integration test covering the full solo dev workflow passes
 - CLI binary installs correctly via `npm install -g` (test in clean environment)
+- `mexai.json` auto-detection confirmed working: cd into a registered project directory and run `mexai status` without any flags → correct project shown
+- Interactive picker appears when project cannot be auto-determined and TTY is available
 
 ---
 

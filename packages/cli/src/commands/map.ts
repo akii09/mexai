@@ -12,6 +12,8 @@ import {
   writeLayer,
   gitCommit,
   projectStorePath,
+  linkPath,
+  writeProjectLink,
 } from '@mexai/core'
 import { info, warn, blank, header, label } from '../utils/output.js'
 import { handleError } from '../utils/error-handler.js'
@@ -24,14 +26,24 @@ interface MapOptions {
 
 export async function runMap(options: MapOptions): Promise<void> {
   try {
-    const entry = resolveFromOptions(options)
+    const entry = await resolveFromOptions(options)
+
+    // Scan from cwd — the directory the user is currently in.
+    // If this differs from the stored path, update the registry so future
+    // commands resolve to this directory automatically.
+    const scanRoot = process.cwd()
+    if (entry.path !== scanRoot) {
+      linkPath(entry.slug, scanRoot)
+      info(`Updated project path: ${entry.path} → ${scanRoot}`)
+    }
+    writeProjectLink(scanRoot, entry.slug)
 
     header('mexai map')
     blank()
 
-    const spinner = ora(`Scanning ${entry.path}…`).start()
+    const spinner = ora(`Scanning ${scanRoot}…`).start()
 
-    const result = scanCodebase(entry.path)
+    const result = scanCodebase(scanRoot)
     const draft = generateDraft(result)
 
     spinner.text = 'Writing codebase.md…'
@@ -44,7 +56,7 @@ export async function runMap(options: MapOptions): Promise<void> {
     blank()
 
     label('Project', entry.name)
-    label('Root', entry.path)
+    label('Root', scanRoot)
     label('Frameworks', result.frameworks.length > 0 ? result.frameworks.join(', ') : '(none detected)')
     label('TypeScript', result.hasTypeScript ? (result.strictMode ? 'yes (strict)' : 'yes') : 'no')
     label('Test frameworks', result.testFrameworks.length > 0 ? result.testFrameworks.join(', ') : '(none detected)')

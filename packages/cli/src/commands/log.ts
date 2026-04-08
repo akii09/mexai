@@ -16,7 +16,7 @@ interface LogOptions {
 
 export async function runLog(options: LogOptions): Promise<void> {
   try {
-    const entry = resolveFromOptions(options)
+    const entry = await resolveFromOptions(options)
 
     const count = options.n !== undefined ? parseInt(options.n, 10) : 10
     const storePath = projectStorePath(entry.slug)

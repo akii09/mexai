@@ -23,7 +23,7 @@ interface ConfirmAnswers {
 
 export async function runRestore(hash: string, options: RestoreOptions): Promise<void> {
   try {
-    const entry = resolveFromOptions(options)
+    const entry = await resolveFromOptions(options)
 
     header('mexai restore')
     blank()

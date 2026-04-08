@@ -28,9 +28,9 @@ const LAYER_FILES: Record<Layer, string> = {
   rules: 'rules.md',
 }
 
-export function runEdit(options: EditOptions): void {
+export async function runEdit(options: EditOptions): Promise<void> {
   try {
-    const entry = resolveFromOptions(options)
+    const entry = await resolveFromOptions(options)
 
     const layer: Layer = isValidLayer(options.layer) ? options.layer : 'context'
     const fileName = LAYER_FILES[layer]

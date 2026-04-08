@@ -6,15 +6,21 @@
  */
 
 import * as path from 'node:path'
+import * as os from 'node:os'
 import inquirer from 'inquirer'
 import ora from 'ora'
+import chalk from 'chalk'
 import {
   initProject,
   gitInit,
   gitCommit,
   projectStorePath,
+  writeProjectLink,
+  scanCodebase,
+  generateDraft,
+  writeLayer,
 } from '@mexai/core'
-import { success, info, blank, header } from '../utils/output.js'
+import { success, info, warn, blank, header } from '../utils/output.js'
 import { handleError } from '../utils/error-handler.js'
 
 interface InitAnswers {
@@ -31,6 +37,18 @@ export async function runInit(options: { slug?: string }): Promise<void> {
 
     header('mexai init')
     info('Setting up a new project context store.')
+
+    // Warn if running from the home directory — this is almost always a mistake.
+    // The registered path is used to auto-detect the project in future commands.
+    if (cwd === os.homedir() || cwd === path.dirname(os.homedir())) {
+      blank()
+      warn('You are initialising from your home directory.')
+      warn('Run  mexai init  from inside your project directory instead.')
+      warn(`  cd /path/to/your/project && mexai init`)
+      blank()
+      info('Continuing anyway — you can fix the path later with  mexai link <slug>.')
+    }
+
     blank()
 
     const answers = await inquirer.prompt<InitAnswers>([
@@ -83,10 +101,25 @@ export async function runInit(options: { slug?: string }): Promise<void> {
       codebasePath: cwd,
     })
 
+    // Write mexai.json to cwd so the project is auto-detected in future
+    writeProjectLink(cwd, slug)
+
     // Initialise git in the store directory
     const storePath = projectStorePath(slug)
     await gitInit(storePath)
     await gitCommit(storePath, 'mexai: initial project setup')
+
+    // Auto-scan the codebase to populate codebase.md
+    spinner.text = 'Scanning codebase…'
+    try {
+      const scanResult = scanCodebase(cwd)
+      const draft = generateDraft(scanResult)
+      writeLayer(slug, 'codebase', draft)
+      spinner.text = 'Committing initial scan…'
+      await gitCommit(storePath, 'mexai: initial codebase scan')
+    } catch {
+      // Scan failed — not fatal, user can run mexai map manually
+    }
 
     spinner.succeed('Project store initialised.')
     blank()
@@ -94,10 +127,35 @@ export async function runInit(options: { slug?: string }): Promise<void> {
     success(`Project "${answers.name}" created with slug: ${slug}`)
     info(`Store: ~/.mexai/projects/${slug}/`)
     blank()
-    info('Next steps:')
-    console.log('  1. Run  mexai map       to scan your codebase')
-    console.log('  2. Run  mexai connect   to configure your AI editor')
-    console.log('  3. Run  mexai status    to see the current state')
+    info('mexai.json written to this directory for auto-detection.')
+    blank()
+
+    // Show the AI bootstrap prompt
+    console.log(chalk.bold('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'))
+    console.log(chalk.bold('  Bootstrap your AI context'))
+    console.log(chalk.bold('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'))
+    blank()
+    console.log('Paste this into your AI editor (Cursor, Claude Code, etc.):')
+    blank()
+    console.log(chalk.cyan('┌─────────────────────────────────────────────────────────┐'))
+    console.log(chalk.cyan('│') + chalk.white.bold(` Mexai bootstrap for: ${answers.name.trim()}`).padEnd(58) + chalk.cyan('│'))
+    console.log(chalk.cyan('│') + '                                                         ' + chalk.cyan('│'))
+    console.log(chalk.cyan('│') + chalk.dim(' I just initialised a mexai context store for this      ') + chalk.cyan('│'))
+    console.log(chalk.cyan('│') + chalk.dim(' project. Please:                                        ') + chalk.cyan('│'))
+    console.log(chalk.cyan('│') + chalk.dim(' 1. Read the codebase carefully                          ') + chalk.cyan('│'))
+    console.log(chalk.cyan('│') + chalk.dim(' 2. Use context_save to fill in:                         ') + chalk.cyan('│'))
+    console.log(chalk.cyan('│') + chalk.dim('    - A detailed project identity paragraph               ') + chalk.cyan('│'))
+    console.log(chalk.cyan('│') + chalk.dim('    - The current development state                      ') + chalk.cyan('│'))
+    console.log(chalk.cyan('│') + chalk.dim('    - Key architectural decisions made so far            ') + chalk.cyan('│'))
+    console.log(chalk.cyan('│') + chalk.dim(' 3. Use the codebase tools to document:                  ') + chalk.cyan('│'))
+    console.log(chalk.cyan('│') + chalk.dim('    - Key files and their purposes                       ') + chalk.cyan('│'))
+    console.log(chalk.cyan('│') + chalk.dim('    - Code conventions and patterns                      ') + chalk.cyan('│'))
+    console.log(chalk.cyan('│') + chalk.dim('    - Files that must not be modified                    ') + chalk.cyan('│'))
+    console.log(chalk.cyan('│') + '                                                         ' + chalk.cyan('│'))
+    console.log(chalk.cyan('│') + chalk.dim(' Then run:  mexai diff   to review the changes           ') + chalk.cyan('│'))
+    console.log(chalk.cyan('│') + chalk.dim('            mexai commit  to apply them                  ') + chalk.cyan('│'))
+    console.log(chalk.cyan('└─────────────────────────────────────────────────────────┘'))
+    blank()
 
     if (options.slug !== undefined) {
       // User passed --slug flag — already handled via initProject

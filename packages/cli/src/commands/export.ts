@@ -24,10 +24,12 @@ interface ExportOptions {
   dir?: string
 }
 
-export function runExport(options: ExportOptions): void {
+export async function runExport(options: ExportOptions): Promise<void> {
   try {
-    const entry = resolveFromOptions(options)
-    const outputDir = options.dir !== undefined ? path.resolve(options.dir) : entry.path
+    const entry = await resolveFromOptions(options)
+    // Default output dir is cwd (where the user is running from), not the
+    // stored entry.path — this way files land in the project the user has open.
+    const outputDir = options.dir !== undefined ? path.resolve(options.dir) : process.cwd()
 
     header('mexai export')
     blank()

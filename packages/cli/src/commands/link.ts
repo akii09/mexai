@@ -7,8 +7,8 @@
  */
 
 import * as path from 'node:path'
-import { linkPath, resolveProject } from '@mexai/core'
-import { success, blank, header, label } from '../utils/output.js'
+import { linkPath, resolveProject, writeProjectLink } from '@mexai/core'
+import { success, info, blank, header, label } from '../utils/output.js'
 import { handleError } from '../utils/error-handler.js'
 
 interface LinkOptions {
@@ -25,10 +25,12 @@ export function runLink(slug: string, options: LinkOptions): void {
     blank()
 
     linkPath(slug, targetPath)
+    writeProjectLink(targetPath, slug)
 
     const entry = resolveProject({ slug })
 
     success(`Linked "${entry.name}" to ${targetPath}`)
+    info('mexai.json written — project will auto-detect in this directory.')
     blank()
     label('Slug', slug)
     label('Path', targetPath)

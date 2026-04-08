@@ -27,7 +27,7 @@ interface CommitOptions {
 
 export async function runCommit(options: CommitOptions): Promise<void> {
   try {
-    const entry = resolveFromOptions(options)
+    const entry = await resolveFromOptions(options)
     const diff = readPendingDiff(entry.slug)
 
     header(`mexai commit — ${entry.name}`)

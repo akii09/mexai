@@ -77,7 +77,7 @@ program
   .option('-p, --project <slug>', 'Project slug (defaults to active project)')
   .option('--discard', 'Discard the pending diff without applying')
   .action((options: { project?: string; discard?: boolean }) => {
-    runDiff(options)
+    void runDiff(options)
   })
 
 // ---------------------------------------------------------------------------
@@ -101,7 +101,7 @@ program
   .description('Register a codebase path for an existing project')
   .option('--path <path>', 'Path to register (defaults to cwd)')
   .action((slug: string, options: { path?: string }) => {
-    runLink(slug, options)
+    void runLink(slug, options)
   })
 
 // ---------------------------------------------------------------------------
@@ -175,7 +175,7 @@ program
   .option('-p, --project <slug>', 'Project slug (defaults to active project)')
   .option('--layer <layer>', 'Layer to edit: context | codebase | rules (default: context)')
   .action((options: { project?: string; layer?: string }) => {
-    runEdit(options)
+    void runEdit(options)
   })
 
 // ---------------------------------------------------------------------------
@@ -188,7 +188,7 @@ program
   .option('-p, --project <slug>', 'Project slug (defaults to active project)')
   .option('--dir <path>', 'Output directory (defaults to project path)')
   .action((options: { project?: string; dir?: string }) => {
-    runExport(options)
+    void runExport(options)
   })
 
 // ---------------------------------------------------------------------------
