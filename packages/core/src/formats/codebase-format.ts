@@ -34,10 +34,10 @@ import type { BudgetSection } from '../budget.js'
 export function parseCodebase(raw: string): ParsedCodebase {
   const sections = splitSections(raw)
   return {
-    structure: sections['Structure'] ?? '',
+    structure: sections.Structure ?? '',
     keyFiles: sections['Key Files'] ?? '',
-    conventions: sections['Conventions'] ?? '',
-    patterns: sections['Patterns'] ?? '',
+    conventions: sections.Conventions ?? '',
+    patterns: sections.Patterns ?? '',
     doNotTouch: sections['Do Not Touch'] ?? '',
   }
 }

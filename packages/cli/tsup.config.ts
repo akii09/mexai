@@ -12,5 +12,7 @@ export default defineConfig({
   banner: {
     js: '#!/usr/bin/env node',
   },
-  noExternal: [],         // bundle nothing — keep deps external for smaller binary
+  // chalk v5, ora v8, inquirer v9 are ESM-only.
+  // Bundle them so the CJS output works without dynamic import().
+  noExternal: ['chalk', 'ora', 'inquirer'],
 })

@@ -52,9 +52,9 @@ export function parseContext(raw: string): ParsedContext {
 
   return {
     frontmatter,
-    identity: sections['Identity'] ?? '',
+    identity: sections.Identity ?? '',
     currentState: sections['Current State'] ?? '',
-    decisions: parseDecisions(sections['Decisions'] ?? ''),
+    decisions: parseDecisions(sections.Decisions ?? ''),
     openThreads: parseThreads(sections['Open Threads'] ?? ''),
   }
 }

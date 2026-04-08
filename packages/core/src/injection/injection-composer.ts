@@ -27,7 +27,7 @@ export interface ComposeOptions {
  *
  * Layer order in output: rules → context → codebase
  */
-export async function compose(slug: string, opts: ComposeOptions = {}): Promise<InjectionPayload> {
+export function compose(slug: string, opts: ComposeOptions = {}): InjectionPayload {
   const budget = getTokenBudget()
   const totalCeiling = opts.maxTokens ?? budget.total
   const requestedLayers: Layer[] = opts.layers ?? ['rules', 'context', 'codebase']

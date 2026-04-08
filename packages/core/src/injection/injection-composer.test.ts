@@ -90,8 +90,8 @@ describe('InjectionComposer.compose', () => {
     })
   })
 
-  it('returns InjectionPayload with text, tokensUsed, and layerBreakdown', async () => {
-    const payload = await compose('test-project')
+  it('returns InjectionPayload with text, tokensUsed, and layerBreakdown', () => {
+    const payload = compose('test-project')
 
     expect(payload.text.length).toBeGreaterThan(0)
     expect(payload.tokensUsed).toBeGreaterThan(0)
@@ -100,8 +100,8 @@ describe('InjectionComposer.compose', () => {
     expect(payload.layerBreakdown.rules).toBeGreaterThan(0)
   })
 
-  it('includes all three layers in order (rules → context → codebase)', async () => {
-    const payload = await compose('test-project')
+  it('includes all three layers in order (rules → context → codebase)', () => {
+    const payload = compose('test-project')
 
     const rulesIdx = payload.text.indexOf('Agent Rules')
     const contextIdx = payload.text.indexOf('Test Project')
@@ -111,8 +111,8 @@ describe('InjectionComposer.compose', () => {
     expect(contextIdx).toBeLessThan(codebaseIdx)
   })
 
-  it('respects the layers filter — context only', async () => {
-    const payload = await compose('test-project', { layers: ['context'] })
+  it('respects the layers filter — context only', () => {
+    const payload = compose('test-project', { layers: ['context'] })
 
     expect(payload.text).toContain('Test Project')
     expect(payload.text).not.toContain('Agent Rules')
@@ -121,8 +121,8 @@ describe('InjectionComposer.compose', () => {
     expect(payload.layerBreakdown.codebase).toBe(0)
   })
 
-  it('respects the layers filter — rules only', async () => {
-    const payload = await compose('test-project', { layers: ['rules'] })
+  it('respects the layers filter — rules only', () => {
+    const payload = compose('test-project', { layers: ['rules'] })
 
     expect(payload.text).toContain('Agent Rules')
     expect(payload.text).not.toContain('Codebase Map')
@@ -130,8 +130,8 @@ describe('InjectionComposer.compose', () => {
     expect(payload.layerBreakdown.codebase).toBe(0)
   })
 
-  it('layerBreakdown tokens sum close to tokensUsed', async () => {
-    const payload = await compose('test-project')
+  it('layerBreakdown tokens sum close to tokensUsed', () => {
+    const payload = compose('test-project')
     const breakdownSum =
       payload.layerBreakdown.context +
       payload.layerBreakdown.codebase +
@@ -150,14 +150,14 @@ describe('InjectionComposer.compose', () => {
       return ''
     })
 
-    const payload = await compose('test-project')
+    const payload = compose('test-project')
     // Should still return context and rules without codebase
     expect(payload.text).toContain('Test Project')
     expect(payload.layerBreakdown.codebase).toBe(0)
   })
 
-  it('respects maxTokens override', async () => {
-    const payload = await compose('test-project', { maxTokens: 100 })
+  it('respects maxTokens override', () => {
+    const payload = compose('test-project', { maxTokens: 100 })
     // tokensUsed should be small — layers trimmed to fit
     expect(payload.tokensUsed).toBeLessThanOrEqual(200) // rough bound
   })

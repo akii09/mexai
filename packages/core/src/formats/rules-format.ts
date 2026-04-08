@@ -19,8 +19,8 @@ export function parseRules(raw: string): ParsedRules {
   const sections = splitSections(raw)
   return {
     codeQuality: sections['Code Quality'] ?? '',
-    security: sections['Security'] ?? '',
-    consistency: sections['Consistency'] ?? '',
+    security: sections.Security ?? '',
+    consistency: sections.Consistency ?? '',
     reviewGates: sections['Review Gates'] ?? '',
     raw,
   }

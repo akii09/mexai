@@ -302,6 +302,18 @@ export function listProjects(): ProjectSummary[] {
 }
 
 // ---------------------------------------------------------------------------
+// Project store path
+// ---------------------------------------------------------------------------
+
+/**
+ * Return the absolute path to a project's directory inside the store.
+ * Used by git operations that need the filesystem path.
+ */
+export function projectStorePath(slug: string): string {
+  return path.join(PROJECTS_DIR, slug)
+}
+
+// ---------------------------------------------------------------------------
 // Path registration
 // ---------------------------------------------------------------------------
 
