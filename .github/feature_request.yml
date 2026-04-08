@@ -1,0 +1,56 @@
+name: Feature Request
+description: Propose a new feature or improvement
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing: check [docs/06-Implementation-Plan.md](../../docs/06-Implementation-Plan.md) — your feature may already be planned or explicitly deferred with a reason.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the pain. Not the solution — the problem.
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: How would this work from the developer's perspective? CLI output, MCP tool behaviour, etc.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What else did you consider? Why didn't those work?
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Which part of Mexai does this affect?
+      options:
+        - CLI
+        - MCP server
+        - Core engine
+        - GitHub sync
+        - Token budget
+        - Documentation
+        - Multiple
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: principles
+    attributes:
+      label: Does this fit the project principles?
+      description: Check all that apply
+      options:
+        - label: Local-first — works offline, no cloud dependency
+        - label: AI proposes, human approves — no silent writes
+        - label: Token budget respected — injection stays bounded
+        - label: Pure core — business logic stays in @mexai/core

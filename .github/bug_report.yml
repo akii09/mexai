@@ -1,0 +1,64 @@
+name: Bug Report
+description: Something is broken
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing: check if this is a known issue in [docs/06-Implementation-Plan.md](../../docs/06-Implementation-Plan.md) non-goals.
+
+  - type: input
+    id: version
+    attributes:
+      label: Mexai version
+      placeholder: "0.1.0 — run `mexai --version`"
+    validations:
+      required: true
+
+  - type: input
+    id: node
+    attributes:
+      label: Node.js version
+      placeholder: "20.11.0 — run `node --version`"
+    validations:
+      required: true
+
+  - type: input
+    id: editor
+    attributes:
+      label: Editor / agent
+      placeholder: "Cursor 0.42, Claude Code 1.2, etc."
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Be specific. What did you run? What did you expect? What did you get?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Run `mexai init "test"`
+        2. Run `mexai map`
+        3. Open in Cursor
+        4. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant output / logs
+      description: Paste terminal output. Remove any sensitive paths or tokens.
+      render: shell
