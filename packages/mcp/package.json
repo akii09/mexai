@@ -19,6 +19,9 @@
     }
   },
   "files": ["dist"],
+  "bin": {
+    "mexai-mcp": "./dist/server.cjs"
+  },
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",

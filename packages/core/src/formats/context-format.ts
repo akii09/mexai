@@ -24,9 +24,58 @@
 import matter from 'gray-matter'
 import type { ParsedContext, ContextFrontmatter, DecisionEntry, ThreadEntry } from '../types.js'
 import { ContextFrontmatterSchema } from '../schemas.js'
-import { StoreError } from '../types.js'
 import { estimateTokens, trimToBudget } from '../budget.js'
 import type { BudgetSection } from '../budget.js'
+
+// ---------------------------------------------------------------------------
+// Frontmatter repair
+// ---------------------------------------------------------------------------
+
+function inlineSlugify(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 50) || 'project'
+}
+
+function isValidIso(val: unknown): boolean {
+  if (typeof val !== 'string') return false
+  try { new Date(val).toISOString(); return true } catch { return false }
+}
+
+/**
+ * Repair a raw frontmatter object by filling in missing or invalid fields.
+ * Never throws — always returns a structurally valid ContextFrontmatter.
+ * Exported so CLI commands (mexai doctor) can call it directly.
+ */
+export function repairContextFrontmatter(
+  data: Record<string, unknown>,
+  hints: { name?: string; slug?: string } = {}
+): ContextFrontmatter {
+  const now = new Date().toISOString()
+  const name =
+    typeof data.name === 'string' && data.name.trim().length > 0
+      ? data.name.trim()
+      : (hints.name ?? 'Untitled Project')
+  const slug =
+    typeof data.slug === 'string' && /^[a-z0-9-]+$/.test(data.slug.trim())
+      ? data.slug.trim()
+      : (hints.slug ?? inlineSlugify(name))
+  const domain =
+    typeof data.domain === 'string' && data.domain.trim().length > 0
+      ? data.domain.trim()
+      : 'unknown'
+  const rawStack = Array.isArray(data.stack)
+    ? data.stack.filter((s): s is string => typeof s === 'string' && s.trim().length > 0)
+    : []
+  const stack = rawStack.length > 0 ? rawStack : ['unknown']
+  const status: 'active' | 'archived' = data.status === 'archived' ? 'archived' : 'active'
+  const createdAt = isValidIso(data.createdAt) ? (data.createdAt as string) : now
+  const updatedAt = now
+
+  return { name, slug, domain, stack, status, createdAt, updatedAt }
+}
 
 // ---------------------------------------------------------------------------
 // Parse
@@ -34,20 +83,23 @@ import type { BudgetSection } from '../budget.js'
 
 /**
  * Parse a raw context.md string into a typed `ParsedContext`.
- * Throws `StoreError` if frontmatter is missing or invalid.
+ * If frontmatter is missing or invalid, repairs it with safe defaults instead
+ * of throwing — so a single bad file never blocks all reads.
+ * Pass `hints` to improve repair quality (slug/name from registry).
+ * Throws `StoreError` only if the YAML itself is completely unparseable.
  */
-export function parseContext(raw: string): ParsedContext {
+export function parseContext(raw: string, hints?: { slug?: string; name?: string }): ParsedContext {
   const { data, content } = matter(raw)
 
+  let frontmatter: ContextFrontmatter
   const frontmatterResult = ContextFrontmatterSchema.safeParse(data)
   if (!frontmatterResult.success) {
-    throw new StoreError(
-      'STORE_ERROR',
-      `context.md has invalid frontmatter: ${frontmatterResult.error.message}`
-    )
+    // Auto-repair: fill in missing/invalid fields with safe defaults
+    frontmatter = repairContextFrontmatter(data as Record<string, unknown>, hints ?? {})
+  } else {
+    frontmatter = frontmatterResult.data as ContextFrontmatter
   }
 
-  const frontmatter = frontmatterResult.data as ContextFrontmatter
   const sections = splitSections(content)
 
   return {
@@ -56,6 +108,40 @@ export function parseContext(raw: string): ParsedContext {
     currentState: sections['Current State'] ?? '',
     decisions: parseDecisions(sections.Decisions ?? ''),
     openThreads: parseThreads(sections['Open Threads'] ?? ''),
+  }
+}
+
+/**
+ * Extract the raw frontmatter data object from a context.md string.
+ * Returns the parsed YAML object — no validation or repair applied.
+ * Useful for showing "before" values in repair previews.
+ */
+export function extractRawFrontmatter(raw: string): Record<string, unknown> {
+  try {
+    const { data } = matter(raw)
+    return data as Record<string, unknown>
+  } catch {
+    return {}
+  }
+}
+
+/**
+ * Validate a raw context.md string without auto-repair.
+ * Returns the validation error message if invalid, or null if valid.
+ * Used by `mexai validate` and `mexai edit` post-save checks.
+ */
+export function validateContextFrontmatter(raw: string): string | null {
+  try {
+    const { data } = matter(raw)
+    const result = ContextFrontmatterSchema.safeParse(data)
+    if (!result.success) {
+      return result.error.issues
+        .map((i) => `  • ${i.path.join('.')}: ${i.message}`)
+        .join('\n')
+    }
+    return null
+  } catch (err) {
+    return `YAML parse error: ${err instanceof Error ? err.message : String(err)}`
   }
 }
 

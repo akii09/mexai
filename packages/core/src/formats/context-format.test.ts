@@ -120,7 +120,7 @@ describe('parseContext', () => {
     expect(ctx.openThreads).toHaveLength(0)
   })
 
-  it('throws StoreError when frontmatter is missing required fields', () => {
+  it('auto-repairs frontmatter with missing required fields instead of throwing', () => {
     const bad = `---
 name: Missing Slug
 status: active
@@ -130,7 +130,14 @@ status: active
 
 test
 `
-    expect(() => parseContext(bad)).toThrow('context.md has invalid frontmatter')
+    // Should NOT throw — resilient parse with auto-repair
+    const ctx = parseContext(bad)
+    expect(ctx.frontmatter.name).toBe('Missing Slug')
+    expect(ctx.frontmatter.slug).toBe('missing-slug') // inlineSlugify of the name
+    expect(ctx.frontmatter.domain).toBe('unknown')    // safe default
+    expect(ctx.frontmatter.stack).toEqual(['unknown']) // safe default
+    expect(ctx.frontmatter.status).toBe('active')
+    expect(ctx.identity.trim()).toBe('test')
   })
 })
 

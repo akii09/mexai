@@ -22,6 +22,7 @@ vi.mock('@mexai/core', async () => {
     readPendingDiff: vi.fn().mockReturnValue(undefined),
     writePendingDiff: vi.fn(),
     readLayer: vi.fn().mockReturnValue('# Rules\n## Code Quality\n- TypeScript strict'),
+    parseContext: vi.fn().mockReturnValue({ frontmatter: { name: 'Test', slug: 'test-project', domain: 'app', stack: ['TypeScript'], status: 'active', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }, identity: 'Test project', currentState: 'In progress', decisions: [], openThreads: [] }),
     parseCodebase: vi.fn().mockReturnValue({ structure: '## Structure', keyFiles: '', conventions: '', patterns: '', doNotTouch: '' }),
     parseRules: vi.fn().mockReturnValue({ raw: '# Rules\ncontent', codeQuality: '', security: '', consistency: '', reviewGates: '' }),
     DiffEngine: vi.fn(() => ({

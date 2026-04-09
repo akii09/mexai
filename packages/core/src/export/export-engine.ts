@@ -17,6 +17,18 @@ import { parseCodebase, formatCodebaseForInjection } from '../formats/codebase-f
 import { parseRules, formatRulesForInjection } from '../formats/rules-format.js'
 
 // ---------------------------------------------------------------------------
+// Decisions formatter (always full list, never truncated in exports)
+// ---------------------------------------------------------------------------
+
+function formatDecisionsSection(decisions: { date: string; title: string; rationale: string }[]): string {
+  if (decisions.length === 0) return '## Decisions\n\n_(none)_'
+  const items = decisions
+    .map((d) => `### ${d.date}: ${d.title}\n\n${d.rationale}`)
+    .join('\n\n')
+  return `## Decisions\n\n${items}`
+}
+
+// ---------------------------------------------------------------------------
 // Export functions
 // ---------------------------------------------------------------------------
 
@@ -41,6 +53,10 @@ export function exportAgentsMd(slug: string): string {
   if (contextRaw !== null) {
     const ctx = parseContext(contextRaw)
     parts.push(formatContextForInjection(ctx, budget.context))
+    // Always include all decisions explicitly — injection may have truncated them
+    if (ctx.decisions.length > 0) {
+      parts.push(formatDecisionsSection(ctx.decisions))
+    }
   }
 
   const codebaseRaw = safeReadLayer(slug, 'codebase')
@@ -68,6 +84,10 @@ export function exportClaudeMd(slug: string): string {
   if (contextRaw !== null) {
     const ctx = parseContext(contextRaw)
     parts.push(formatContextForInjection(ctx, budget.context))
+    // Always include all decisions explicitly — injection may have truncated them
+    if (ctx.decisions.length > 0) {
+      parts.push(formatDecisionsSection(ctx.decisions))
+    }
   }
 
   const rulesRaw = safeReadLayer(slug, 'rules')

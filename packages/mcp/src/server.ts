@@ -77,9 +77,10 @@ export function createServer(): McpServer {
         })).optional().describe('Open threads (work items, questions) to add or resolve'),
         currentState: z.string().optional().describe('A fresh description of the current development state'),
       }).describe('The proposed context changes. At least one field must be provided.'),
+      dryRun: z.boolean().optional().describe('If true, build and return the diff preview without writing to pending-diff. Useful for inspecting what would change.'),
     },
-  }, ({ workspacePath, slug, source, commitMessage, sessionNote, changes }) => {
-    return toCallResult(handleContextSave({ workspacePath, slug, source, commitMessage, sessionNote, changes }))
+  }, ({ workspacePath, slug, source, commitMessage, sessionNote, changes, dryRun }) => {
+    return toCallResult(handleContextSave({ workspacePath, slug, source, commitMessage, sessionNote, changes, dryRun }))
   })
 
   // ── codebase_read ─────────────────────────────────────────────────────────

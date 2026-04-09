@@ -18,6 +18,7 @@ interface DiffOptions {
   slug?: string
   project?: string
   discard?: boolean
+  json?: boolean
 }
 
 export async function runDiff(options: DiffOptions): Promise<void> {
@@ -28,6 +29,17 @@ export async function runDiff(options: DiffOptions): Promise<void> {
     if (options.discard === true) {
       clearPendingDiff(entry.slug)
       success('Pending diff discarded.')
+      return
+    }
+
+    // ── JSON output ──────────────────────────────────────────────────────────
+    if (options.json === true) {
+      console.log(JSON.stringify({
+        slug: entry.slug,
+        name: entry.name,
+        hasPendingDiff: diff !== undefined,
+        pendingDiff: diff ?? null,
+      }, null, 2))
       return
     }
 

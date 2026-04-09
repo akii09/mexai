@@ -76,6 +76,8 @@ export {
 // Store
 // ---------------------------------------------------------------------------
 
+export { slugify } from './store/registry.js'
+
 export {
   ensureStore,
   initProject,
@@ -124,7 +126,7 @@ export type { BudgetSection } from './budget.js'
 // Layer formats
 // ---------------------------------------------------------------------------
 
-export { parseContext, serializeContext, formatContextForInjection } from './formats/context-format.js'
+export { parseContext, serializeContext, formatContextForInjection, repairContextFrontmatter, validateContextFrontmatter, extractRawFrontmatter } from './formats/context-format.js'
 export { parseCodebase, serializeCodebase, formatCodebaseForInjection } from './formats/codebase-format.js'
 export { parseRules, serializeRules, formatRulesForInjection } from './formats/rules-format.js'
 export type { RulesInjectionResult } from './formats/rules-format.js'

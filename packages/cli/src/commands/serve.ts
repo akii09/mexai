@@ -52,8 +52,8 @@ function findMcpServerBin(): string {
       path.dirname(process.execPath),
       '../lib/node_modules/@mexai/mcp/dist/server.cjs'
     ),
-    // Monorepo development layout
-    path.resolve(__dirname, '../../../mcp/dist/server.cjs'),
+    // Monorepo development layout — packages/cli/dist → packages/mcp/dist
+    path.resolve(__dirname, '../../mcp/dist/server.cjs'),
     // Sibling node_modules
     path.resolve(process.cwd(), 'node_modules/@mexai/mcp/dist/server.cjs'),
   ]

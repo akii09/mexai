@@ -174,6 +174,7 @@ export const ContextSaveInputSchema = z.object({
     .max(72, 'Commit message must be 72 characters or fewer'),
   sessionNote: z.string().optional(),
   changes: ContextChangesSchema,
+  dryRun: z.boolean().optional(),
 })
 
 export const CodebaseReadInputSchema = z.object({

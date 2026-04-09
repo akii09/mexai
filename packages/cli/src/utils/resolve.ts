@@ -3,11 +3,13 @@
  *
  * Resolution order (first match wins):
  * 1. --project / --slug flag (explicit override)
- * 2. mexai.json found by walking up from cwd
- * 3. Exact cwd match in registry
- * 4. Active project (if set)
- * 5. Interactive selection (when running in a TTY)
- * 6. NO_ACTIVE_PROJECT error
+ * 2. mexai.json found by walking up from cwd  ← definitive auto-detection
+ * 3. Interactive selection (TTY only)          ← always explicit, never ambiguous
+ * 4. NO_ACTIVE_PROJECT error
+ *
+ * Steps 3 and 4 from the old chain (registry path prefix match and active
+ * fallback) are intentionally removed — they caused wrong-project detection
+ * when multiple projects had overlapping paths.
  */
 
 import * as path from 'node:path'
@@ -85,9 +87,7 @@ async function pickProject(): Promise<RegistryEntry> {
  * Resolution order:
  * 1. --project / --slug flag
  * 2. mexai.json found walking up from cwd
- * 3. Exact cwd match in registry (or prefix match)
- * 4. Active project
- * 5. Interactive selection (TTY only)
+ * 3. Interactive selection (TTY only)
  */
 export async function resolveFromOptions(opts: {
   slug?: string | undefined
@@ -95,38 +95,32 @@ export async function resolveFromOptions(opts: {
 }): Promise<RegistryEntry> {
   const cwd = process.cwd()
 
-  // 1. Explicit flag
+  // 1. Explicit flag — highest priority, always unambiguous
   const explicitSlug = opts.slug ?? opts.project
   if (explicitSlug !== undefined) {
     return resolveProject({ slug: explicitSlug })
   }
 
-  // 2. mexai.json in cwd (or parents)
+  // 2. mexai.json walk-up — definitive auto-detection
   const linkedSlug = findProjectLinkInTree(cwd)
   if (linkedSlug !== undefined) {
     try {
       return resolveProject({ slug: linkedSlug })
     } catch {
-      // Linked slug no longer exists in registry — fall through
+      // Stale mexai.json pointing to a deleted project — fall through to picker
     }
   }
 
-  // 3 + 4. Workspace path match → active fallback (existing resolveProject logic)
-  try {
-    return resolveProject({ workspacePath: cwd })
-  } catch {
-    // NO_ACTIVE_PROJECT — fall through to interactive
-  }
-
-  // 5. Interactive selection
+  // 3. Interactive selection (TTY only) — always explicit, never ambiguous
   if (process.stdout.isTTY) {
     return pickProject()
   }
 
-  // Non-TTY, no project found
+  // Non-TTY with no mexai.json — cannot proceed
   throw new Error(
-    'Could not determine which project to use. ' +
-    'Run from a directory with mexai.json, or pass --project <slug>.'
+    'Could not determine which project to use.\n' +
+    '  • Run  mexai init  to create a project and write mexai.json\n' +
+    '  • Or pass  --project <slug>  to specify explicitly'
   )
 }
 

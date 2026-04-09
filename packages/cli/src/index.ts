@@ -21,6 +21,10 @@ import { runEdit } from './commands/edit.js'
 import { runExport } from './commands/export.js'
 import { runSync } from './commands/sync.js'
 import { runServe } from './commands/serve.js'
+import { runContextSave } from './commands/context-save.js'
+import { runValidate } from './commands/validate.js'
+import { runDoctor } from './commands/doctor.js'
+import { runApply } from './commands/apply.js'
 
 const program = new Command()
 
@@ -76,7 +80,8 @@ program
   .description('Show the pending diff for the active project')
   .option('-p, --project <slug>', 'Project slug (defaults to active project)')
   .option('--discard', 'Discard the pending diff without applying')
-  .action((options: { project?: string; discard?: boolean }) => {
+  .option('--json', 'Output as JSON (machine-readable)')
+  .action((options: { project?: string; discard?: boolean; json?: boolean }) => {
     void runDiff(options)
   })
 
@@ -135,7 +140,8 @@ program
   .command('status')
   .description('Show the current status of the active project')
   .option('-p, --project <slug>', 'Project slug (defaults to active project)')
-  .action((options: { project?: string }) => {
+  .option('--json', 'Output as JSON (machine-readable)')
+  .action((options: { project?: string; json?: boolean }) => {
     void runStatus(options)
   })
 
@@ -171,11 +177,77 @@ program
 
 program
   .command('edit')
-  .description('Open a layer file in $EDITOR')
+  .description('Open a layer file in $EDITOR, or write it non-interactively')
   .option('-p, --project <slug>', 'Project slug (defaults to active project)')
   .option('--layer <layer>', 'Layer to edit: context | codebase | rules (default: context)')
-  .action((options: { project?: string; layer?: string }) => {
+  .option('--from-file <path>', 'Write content from a file to the layer (non-interactive)')
+  .option('--stdin', 'Read content from stdin and write to the layer (non-interactive)')
+  .option('--print-path', 'Print the file path and exit (for scripting)')
+  .action((options: { project?: string; layer?: string; fromFile?: string; stdin?: boolean; printPath?: boolean }) => {
     void runEdit(options)
+  })
+
+// ---------------------------------------------------------------------------
+// mexai context-save
+// ---------------------------------------------------------------------------
+
+program
+  .command('context-save')
+  .description('Stage context changes without opening an editor (CLI parity with MCP context_save)')
+  .option('-p, --project <slug>', 'Project slug (defaults to active project)')
+  .option('--message <msg>', 'Commit message (required, max 72 chars)')
+  .option('--decisions <json>', 'JSON array of decisions: [{title, rationale, date?}]')
+  .option('--current-state <str>', 'Replace the current state description')
+  .option('--threads <json>', 'JSON array of threads: [{action: add|check_off, content}]')
+  .option('--source <src>', 'Context source: claude-code | cursor | vscode | opencode | manual (default: manual)')
+  .option('--from-file <path>', 'Load changes from a JSON file instead of inline flags')
+  .option('--dry-run', 'Preview the diff without staging it')
+  .action((options: { project?: string; message?: string; decisions?: string; currentState?: string; threads?: string; source?: string; fromFile?: string; dryRun?: boolean }) => {
+    void runContextSave(options)
+  })
+
+// ---------------------------------------------------------------------------
+// mexai validate
+// ---------------------------------------------------------------------------
+
+program
+  .command('validate')
+  .description('Check project files for integrity issues (frontmatter, duplicates, missing files)')
+  .option('-p, --project <slug>', 'Project slug (defaults to active project)')
+  .action((options: { project?: string }) => {
+    void runValidate(options)
+  })
+
+// ---------------------------------------------------------------------------
+// mexai doctor
+// ---------------------------------------------------------------------------
+
+program
+  .command('doctor')
+  .description('Detect and auto-repair malformed project files')
+  .option('-p, --project <slug>', 'Project slug (defaults to active project)')
+  .option('--apply', 'Write repairs to disk (default: dry-run, shows what would change)')
+  .action((options: { project?: string; apply?: boolean }) => {
+    void runDoctor(options)
+  })
+
+// ---------------------------------------------------------------------------
+// mexai apply
+// ---------------------------------------------------------------------------
+
+program
+  .command('apply')
+  .description('Atomic pipeline: stage changes and commit immediately (no manual diff step)')
+  .option('-p, --project <slug>', 'Project slug (defaults to active project)')
+  .option('--message <msg>', 'Commit message (required, max 72 chars)')
+  .option('--decisions <json>', 'JSON array of decisions: [{title, rationale, date?}]')
+  .option('--current-state <str>', 'Replace the current state description')
+  .option('--threads <json>', 'JSON array of threads: [{action: add|check_off, content}]')
+  .option('--source <src>', 'Context source (default: manual)')
+  .option('--from-file <path>', 'Load changes from a JSON file')
+  .option('--validate', 'Run validation before applying (fails if issues found)')
+  .action((options: { project?: string; message?: string; decisions?: string; currentState?: string; threads?: string; source?: string; fromFile?: string; validate?: boolean }) => {
+    void runApply(options)
   })
 
 // ---------------------------------------------------------------------------

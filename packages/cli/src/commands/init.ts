@@ -16,6 +16,10 @@ import {
   gitCommit,
   projectStorePath,
   writeProjectLink,
+  readProjectLink,
+  listProjects,
+  linkPath,
+  slugify,
   scanCodebase,
   generateDraft,
   writeLayer,
@@ -37,6 +41,43 @@ export async function runInit(options: { slug?: string }): Promise<void> {
 
     header('mexai init')
     info('Setting up a new project context store.')
+
+    // Guard A: mexai.json already exists in this directory
+    const existingLinkedSlug = readProjectLink(cwd)
+    if (existingLinkedSlug !== undefined) {
+      const allProjects = listProjects()
+      const existingProject = allProjects.find((p) => p.slug === existingLinkedSlug)
+      if (existingProject !== undefined) {
+        blank()
+        warn(`This directory is already linked to project "${existingProject.name}" (slug: ${existingProject.slug}).`)
+        blank()
+        info('What would you like to do?')
+        const { action } = await inquirer.prompt<{ action: string }>([
+          {
+            type: 'list',
+            name: 'action',
+            message: 'Choose an option:',
+            choices: [
+              { name: `Use existing project "${existingProject.name}"  (recommended)`, value: 'use' },
+              { name: 'Create a new project in this directory anyway', value: 'new' },
+              { name: 'Cancel', value: 'cancel' },
+            ],
+          },
+        ])
+        if (action === 'cancel') {
+          info('Cancelled.')
+          return
+        }
+        if (action === 'use') {
+          blank()
+          success(`Using existing project "${existingProject.name}" (slug: ${existingProject.slug}).`)
+          info(`Run  mexai status  to see current state, or  mexai diff  to review pending changes.`)
+          return
+        }
+        // action === 'new' — fall through to create a new project
+        blank()
+      }
+    }
 
     // Warn if running from the home directory — this is almost always a mistake.
     // The registered path is used to auto-detect the project in future commands.
@@ -86,6 +127,57 @@ export async function runInit(options: { slug?: string }): Promise<void> {
         default: 'Initial setup.',
       },
     ])
+
+    // Guard B: slug collision — same name already exists in registry
+    const intendedSlug = slugify(answers.name.trim())
+    const registryProjects = listProjects()
+    const conflicting = registryProjects.find((p) => p.slug === intendedSlug)
+    if (conflicting !== undefined) {
+      blank()
+      warn(`A project named "${conflicting.name}" (slug: ${conflicting.slug}) already exists in mexai.`)
+      blank()
+      info('What would you like to do?')
+      const { collisionAction } = await inquirer.prompt<{ collisionAction: string }>([
+        {
+          type: 'list',
+          name: 'collisionAction',
+          message: 'Choose an option:',
+          choices: [
+            { name: `Link this directory to "${conflicting.name}"  (use the existing project)`, value: 'link' },
+            { name: 'Create a new project with a different name', value: 'rename' },
+            { name: 'Cancel', value: 'cancel' },
+          ],
+        },
+      ])
+      if (collisionAction === 'cancel') {
+        info('Cancelled.')
+        return
+      }
+      if (collisionAction === 'link') {
+        linkPath(conflicting.slug, cwd)
+        writeProjectLink(cwd, conflicting.slug)
+        blank()
+        success(`Linked this directory to "${conflicting.name}" (slug: ${conflicting.slug}).`)
+        info(`Run  mexai status  to see current state.`)
+        return
+      }
+      // collisionAction === 'rename' — ask for a different name and fall through
+      const { newName } = await inquirer.prompt<{ newName: string }>([
+        {
+          type: 'input',
+          name: 'newName',
+          message: 'Enter a different project name:',
+          validate: (v: string) => {
+            if (v.trim().length === 0) return 'Name is required.'
+            const s = slugify(v.trim())
+            const exists = registryProjects.find((p) => p.slug === s)
+            return exists !== undefined ? `"${exists.name}" already exists. Try a different name.` : true
+          },
+        },
+      ])
+      answers.name = newName.trim()
+      blank()
+    }
 
     blank()
     const spinner = ora('Initialising project store…').start()
