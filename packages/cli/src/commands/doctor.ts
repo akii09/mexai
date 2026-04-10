@@ -18,6 +18,8 @@ import {
   extractRawFrontmatter,
   serializeContext,
   parseContext,
+  gitCommit,
+  projectStorePath,
 } from '@mexai/core'
 import { success, info, warn, blank, header, label } from '../utils/output.js'
 import { handleError } from '../utils/error-handler.js'
@@ -103,8 +105,12 @@ export async function runDoctor(options: DoctorOptions): Promise<void> {
     const fixedContent = serializeContext(ctx)
     fs.writeFileSync(contextPath, fixedContent, 'utf8')
 
+    // Commit the repair to store git so storeDirty transitions to clean
+    const storePath = projectStorePath(entry.slug)
+    await gitCommit(storePath, 'mexai: doctor — repair context.md frontmatter')
+
     blank()
-    success('context.md frontmatter repaired and written.')
+    success('context.md frontmatter repaired, committed, and store is now clean.')
     info('Run  mexai validate  to confirm all checks pass.')
   } catch (err) {
     handleError(err)
