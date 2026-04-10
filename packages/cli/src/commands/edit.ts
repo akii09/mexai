@@ -7,6 +7,7 @@
  *   mexai edit --print-path           — prints the file path and exits (for scripting)
  *   mexai edit --from-file <path>     — writes content from <path> to the layer
  *   mexai edit --stdin                — reads content from stdin and writes to the layer
+ *   mexai edit --json                 — output operation result as JSON (CI-safe)
  *
  * After any write, context.md is validated for frontmatter correctness.
  */
@@ -28,6 +29,7 @@ interface EditOptions {
   fromFile?: string
   stdin?: boolean
   printPath?: boolean
+  json?: boolean
 }
 
 const VALID_LAYERS: Layer[] = ['context', 'codebase', 'rules']
@@ -47,22 +49,36 @@ export async function runEdit(options: EditOptions): Promise<void> {
 
     // ── --print-path: just show the path and exit ───────────────────────────
     if (options.printPath === true) {
-      console.log(filePath)
+      if (options.json === true) {
+        console.log(JSON.stringify({ slug: entry.slug, layer, filePath, action: 'path-printed' }))
+      } else {
+        console.log(filePath)
+      }
       return
     }
 
     // ── --from-file: write content from a file ──────────────────────────────
     if (options.fromFile !== undefined) {
       if (!fs.existsSync(options.fromFile)) {
+        if (options.json === true) {
+          console.log(JSON.stringify({ slug: entry.slug, layer, filePath, action: 'write', success: false, error: `File not found: ${options.fromFile}` }))
+          process.exitCode = 1
+          return
+        }
         warn(`File not found: ${options.fromFile}`)
         process.exitCode = 1
         return
       }
       const content = fs.readFileSync(options.fromFile, 'utf8')
       fs.writeFileSync(filePath, content, 'utf8')
+      const { valid, errors } = checkValidation(layer, filePath)
+      if (options.json === true) {
+        console.log(JSON.stringify({ slug: entry.slug, layer, filePath, action: 'write', success: true, valid, validationErrors: errors }))
+        return
+      }
       blank()
       success(`Layer "${layer}" updated from ${options.fromFile}`)
-      validateAndReport(layer, filePath)
+      reportValidation(layer, valid, errors)
       return
     }
 
@@ -74,9 +90,21 @@ export async function runEdit(options: EditOptions): Promise<void> {
       }
       const content = Buffer.concat(chunks).toString('utf8')
       fs.writeFileSync(filePath, content, 'utf8')
+      const { valid, errors } = checkValidation(layer, filePath)
+      if (options.json === true) {
+        console.log(JSON.stringify({ slug: entry.slug, layer, filePath, action: 'write', success: true, valid, validationErrors: errors }))
+        return
+      }
       blank()
       success(`Layer "${layer}" updated from stdin.`)
-      validateAndReport(layer, filePath)
+      reportValidation(layer, valid, errors)
+      return
+    }
+
+    // ── JSON + no write flag: print path info ────────────────────────────────
+    if (options.json === true) {
+      const { valid, errors } = checkValidation(layer, filePath)
+      console.log(JSON.stringify({ slug: entry.slug, layer, filePath, action: 'info', valid, validationErrors: errors }))
       return
     }
 
@@ -100,33 +128,40 @@ export async function runEdit(options: EditOptions): Promise<void> {
     }
 
     blank()
-    validateAndReport(layer, filePath)
+    const { valid, errors } = checkValidation(layer, filePath)
+    reportValidation(layer, valid, errors)
     info(`Run  mexai status  to see the current state.`)
   } catch (err) {
+    if (options.json === true) {
+      console.log(JSON.stringify({ success: false, error: err instanceof Error ? err.message : String(err) }))
+      process.exitCode = 1
+      return
+    }
     handleError(err)
   }
 }
 
-/**
- * Validate a layer file after write. Reports errors for context layer only
- * (codebase and rules are free-form markdown, no strict schema).
- */
-function validateAndReport(layer: Layer, filePath: string): void {
-  if (layer !== 'context') return
+function checkValidation(layer: Layer, filePath: string): { valid: boolean; errors: string | null } {
+  if (layer !== 'context') return { valid: true, errors: null }
   try {
     const raw = fs.readFileSync(filePath, 'utf8')
     const errMsg = validateContextFrontmatter(raw)
-    if (errMsg !== null) {
-      blank()
-      warn('context.md has frontmatter issues (will be auto-repaired on next read):')
-      console.log(errMsg)
-      blank()
-      info('Run  mexai doctor  to automatically fix these issues.')
-    } else {
-      success('context.md frontmatter is valid.')
-    }
+    return { valid: errMsg === null, errors: errMsg }
   } catch {
-    // File unreadable — skip validation silently
+    return { valid: false, errors: 'File could not be read for validation.' }
+  }
+}
+
+function reportValidation(layer: Layer, valid: boolean, errors: string | null): void {
+  if (layer !== 'context') return
+  if (!valid && errors !== null) {
+    blank()
+    warn('context.md has frontmatter issues (will be auto-repaired on next read):')
+    console.log(errors)
+    blank()
+    info('Run  mexai doctor  to automatically fix these issues.')
+  } else {
+    success('context.md frontmatter is valid.')
   }
 }
 

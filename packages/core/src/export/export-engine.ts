@@ -108,7 +108,8 @@ export function exportClaudeMd(slug: string): string {
 
 /**
  * Generate .cursorrules content for the given project slug.
- * Rules-focused export; under the rules token ceiling.
+ * Rules-focused export with full context parity: includes Current State
+ * and all Decisions so agents have complete project awareness.
  */
 export function exportCursorRules(slug: string): string {
   const budget = getTokenBudget()
@@ -123,15 +124,74 @@ export function exportCursorRules(slug: string): string {
     parts.push(content)
   }
 
-  // Append a brief context summary (identity + current state only)
+  // Context: identity + current state + all decisions (same sections as AGENTS.md / CLAUDE.md)
   const contextRaw = safeReadLayer(slug, 'context')
   if (contextRaw !== null) {
     const ctx = parseContext(contextRaw)
-    const brief = `## Project: ${ctx.frontmatter.name}\n\n${ctx.identity.trim()}\n\n**Current state:** ${ctx.currentState.trim()}`
-    parts.push(brief)
+    const contextSection = [
+      `## Project: ${ctx.frontmatter.name}`,
+      ``,
+      ctx.identity.trim(),
+      ``,
+      `**Current state:** ${ctx.currentState.trim()}`,
+    ].join('\n')
+    parts.push(contextSection)
+    // Always include all decisions — never truncated in exports
+    if (ctx.decisions.length > 0) {
+      parts.push(formatDecisionsSection(ctx.decisions))
+    }
   }
 
   return parts.join('\n\n') + '\n'
+}
+
+// ---------------------------------------------------------------------------
+// Export completeness audit
+// ---------------------------------------------------------------------------
+
+export interface ExportCompleteness {
+  target: string
+  hasRules: boolean
+  hasIdentity: boolean
+  hasCurrentState: boolean
+  hasDecisions: boolean
+  complete: boolean
+}
+
+/**
+ * Audit the completeness of all export targets for a project.
+ * Used by `mexai export` to print a summary and warn on gaps.
+ */
+export function auditExportCompleteness(slug: string): ExportCompleteness[] {
+  const contextRaw = safeReadLayer(slug, 'context')
+  const rulesRaw = safeReadLayer(slug, 'rules')
+
+  const hasRules = rulesRaw !== null && rulesRaw.trim().length > 10
+  let hasIdentity = false
+  let hasCurrentState = false
+  let hasDecisions = false
+
+  if (contextRaw !== null) {
+    const ctx = parseContext(contextRaw)
+    hasIdentity = ctx.identity.trim().length > 0
+    hasCurrentState = ctx.currentState.trim().length > 0
+    hasDecisions = ctx.decisions.length > 0
+  }
+
+  const makeEntry = (target: string): ExportCompleteness => ({
+    target,
+    hasRules,
+    hasIdentity,
+    hasCurrentState,
+    hasDecisions,
+    complete: hasIdentity && hasCurrentState,
+  })
+
+  return [
+    makeEntry('AGENTS.md'),
+    makeEntry('CLAUDE.md'),
+    makeEntry('.cursorrules'),
+  ]
 }
 
 // ---------------------------------------------------------------------------

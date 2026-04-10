@@ -161,7 +161,8 @@ export type { ComposeOptions } from './injection/injection-composer.js'
 // Export engine
 // ---------------------------------------------------------------------------
 
-export { exportAgentsMd, exportClaudeMd, exportCursorRules } from './export/export-engine.js'
+export { exportAgentsMd, exportClaudeMd, exportCursorRules, auditExportCompleteness } from './export/export-engine.js'
+export type { ExportCompleteness } from './export/export-engine.js'
 
 // ---------------------------------------------------------------------------
 // Sync manager

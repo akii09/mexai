@@ -41,7 +41,13 @@ program
   .command('init')
   .description('Initialise a new project context store')
   .option('--slug <slug>', 'Override the auto-generated slug')
-  .action((options: { slug?: string }) => {
+  .option('-y, --yes', 'Non-interactive mode: accept all defaults (CI-safe). Combine with --name, --domain, --stack, --identity, --current-state to override defaults.')
+  .option('--name <name>', 'Project name (used with --yes)')
+  .option('--domain <domain>', 'Project domain (used with --yes, default: web-app)')
+  .option('--stack <stack>', 'Comma-separated stack (used with --yes, default: TypeScript)')
+  .option('--identity <text>', 'One-line project description (used with --yes)')
+  .option('--current-state <text>', 'Current development state (used with --yes)')
+  .action((options: { slug?: string; yes?: boolean; name?: string; domain?: string; stack?: string; identity?: string; currentState?: string }) => {
     void runInit(options)
   })
 
@@ -53,7 +59,9 @@ program
   .command('map')
   .description('Scan the codebase and generate/update codebase.md')
   .option('-p, --project <slug>', 'Project slug (defaults to active project)')
-  .action((options: { project?: string }) => {
+  .option('--quality <mode>', 'Quality gate: standard (default) | strict. Strict fails if Key Files, Conventions, Patterns, Do Not Touch are empty.')
+  .option('--json', 'Output as JSON (machine-readable)')
+  .action((options: { project?: string; quality?: string; json?: boolean }) => {
     void runMap(options)
   })
 
@@ -93,7 +101,8 @@ program
   .command('commit')
   .description('Apply the pending diff and commit to the store')
   .option('-p, --project <slug>', 'Project slug (defaults to active project)')
-  .action((options: { project?: string }) => {
+  .option('--json', 'Output as JSON (machine-readable)')
+  .action((options: { project?: string; json?: boolean }) => {
     void runCommit(options)
   })
 
@@ -183,7 +192,8 @@ program
   .option('--from-file <path>', 'Write content from a file to the layer (non-interactive)')
   .option('--stdin', 'Read content from stdin and write to the layer (non-interactive)')
   .option('--print-path', 'Print the file path and exit (for scripting)')
-  .action((options: { project?: string; layer?: string; fromFile?: string; stdin?: boolean; printPath?: boolean }) => {
+  .option('--json', 'Output operation result as JSON (machine-readable)')
+  .action((options: { project?: string; layer?: string; fromFile?: string; stdin?: boolean; printPath?: boolean; json?: boolean }) => {
     void runEdit(options)
   })
 
@@ -258,8 +268,9 @@ program
   .command('export')
   .description('Export flat context files (AGENTS.md, CLAUDE.md, .cursorrules) to the project root')
   .option('-p, --project <slug>', 'Project slug (defaults to active project)')
-  .option('--dir <path>', 'Output directory (defaults to project path)')
-  .action((options: { project?: string; dir?: string }) => {
+  .option('--dir <path>', 'Output directory (defaults to cwd)')
+  .option('--json', 'Output as JSON with completeness audit (machine-readable)')
+  .action((options: { project?: string; dir?: string; json?: boolean }) => {
     void runExport(options)
   })
 

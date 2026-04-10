@@ -35,7 +35,12 @@ interface InitAnswers {
   currentState: string
 }
 
-export async function runInit(options: { slug?: string }): Promise<void> {
+export async function runInit(options: { slug?: string; yes?: boolean; name?: string; domain?: string; stack?: string; identity?: string; currentState?: string }): Promise<void> {
+  // Non-interactive mode: --yes accepts all defaults, CLI flags override each field.
+  if (options.yes === true) {
+    return runInitNonInteractive(options)
+  }
+
   try {
     const cwd = process.cwd()
 
@@ -252,6 +257,79 @@ export async function runInit(options: { slug?: string }): Promise<void> {
     if (options.slug !== undefined) {
       // User passed --slug flag — already handled via initProject
     }
+  } catch (err) {
+    handleError(err)
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Non-interactive init (--yes / CI mode)
+// ---------------------------------------------------------------------------
+
+async function runInitNonInteractive(options: {
+  slug?: string
+  name?: string
+  domain?: string
+  stack?: string
+  identity?: string
+  currentState?: string
+}): Promise<void> {
+  try {
+    const cwd = process.cwd()
+    const projectName = options.name?.trim() ?? path.basename(cwd)
+    const domain = options.domain?.trim() ?? 'web-app'
+    const stackStr = options.stack?.trim() ?? 'TypeScript'
+    const stack = stackStr.split(',').map((s) => s.trim()).filter(Boolean)
+    const identity = options.identity?.trim() ?? `${projectName} project.`
+    const currentState = options.currentState?.trim() ?? 'Initial setup.'
+
+    // Guard A: mexai.json already exists — in --yes mode, skip silently and exit
+    const existingLinkedSlug = readProjectLink(cwd)
+    if (existingLinkedSlug !== undefined) {
+      const allProjects = listProjects()
+      const existingProject = allProjects.find((p) => p.slug === existingLinkedSlug)
+      if (existingProject !== undefined) {
+        success(`Already linked to "${existingProject.name}" (slug: ${existingProject.slug}). Nothing to do.`)
+        return
+      }
+    }
+
+    // Guard B: slug collision — in --yes mode, skip silently and exit
+    const intendedSlug = slugify(projectName)
+    const registryProjects = listProjects()
+    const conflicting = registryProjects.find((p) => p.slug === intendedSlug)
+    if (conflicting !== undefined) {
+      success(`Project "${conflicting.name}" already exists. Linking this directory to it.`)
+      linkPath(conflicting.slug, cwd)
+      writeProjectLink(cwd, conflicting.slug)
+      return
+    }
+
+    const spinner = ora('Initialising project store…').start()
+
+    const slug = initProject({ name: projectName, domain, stack, identity, currentState, codebasePath: cwd })
+    writeProjectLink(cwd, slug)
+
+    const storePath = projectStorePath(slug)
+    await gitInit(storePath)
+    await gitCommit(storePath, 'mexai: initial project setup')
+
+    spinner.text = 'Scanning codebase…'
+    try {
+      const scanResult = scanCodebase(cwd)
+      const draft = generateDraft(scanResult)
+      writeLayer(slug, 'codebase', draft)
+      spinner.text = 'Committing initial scan…'
+      await gitCommit(storePath, 'mexai: initial codebase scan')
+    } catch {
+      // Scan failed — not fatal
+    }
+
+    spinner.succeed('Project store initialised.')
+    blank()
+    success(`Project "${projectName}" created with slug: ${slug}`)
+    info(`Store: ~/.mexai/projects/${slug}/`)
+    info(`mexai.json written to this directory for auto-detection.`)
   } catch (err) {
     handleError(err)
   }
