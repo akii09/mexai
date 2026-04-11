@@ -111,11 +111,11 @@ describe('MCP server', () => {
     await server.close()
   })
 
-  it('lists all 4 resources', async () => {
+  it('exposes no resources (tools-only design)', async () => {
     const { client, server } = await makeClient()
-    const { resources } = await client.listResources()
-    const uris = resources.map(r => r.uri).sort()
-    expect(uris).toEqual(['mexai://all', 'mexai://codebase', 'mexai://context', 'mexai://rules'])
+    // When no resources are registered, the MCP SDK does not expose the
+    // resources/list capability — the method is not found.
+    await expect(client.listResources()).rejects.toThrow()
     await server.close()
   })
 })

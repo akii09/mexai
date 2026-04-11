@@ -32,6 +32,17 @@ function formatDecisionsSection(decisions: { date: string; title: string; ration
 // Export functions
 // ---------------------------------------------------------------------------
 
+/** MCP tool guidance block — injected into every AGENTS.md and CLAUDE.md export. */
+const MCP_TOOL_GUIDANCE = `## mexai MCP — How to use
+
+If the mexai MCP server is connected (run \`mexai serve\` or configure via \`mexai connect\`):
+
+- **At session start:** call the \`context_read\` tool to load the latest project context.
+- **After significant work:** call \`context_save\` to stage decisions and state updates for review.
+- **Do NOT** use \`@mexai-context\` or any \`mexai://\` URI — resource URIs are not supported. Use tools only.
+
+Available tools: \`context_read\`, \`context_save\`, \`context_list\`, \`codebase_read\`, \`rules_read\``
+
 /**
  * Generate AGENTS.md content for the given project slug.
  * Full three-layer export for agents that read AGENTS.md.
@@ -40,7 +51,7 @@ export function exportAgentsMd(slug: string): string {
   const budget = getTokenBudget()
   const header = buildHeader('AGENTS.md', slug)
 
-  const parts: string[] = [header]
+  const parts: string[] = [header, MCP_TOOL_GUIDANCE]
 
   const rulesRaw = safeReadLayer(slug, 'rules')
   if (rulesRaw !== null) {
@@ -78,7 +89,7 @@ export function exportClaudeMd(slug: string): string {
   const header = buildHeader('CLAUDE.md', slug)
   const claudeNote = `> **Context injected by mexai.** This file is auto-generated — edit your context via \`mexai edit\` instead.`
 
-  const parts: string[] = [header, claudeNote]
+  const parts: string[] = [header, claudeNote, MCP_TOOL_GUIDANCE]
 
   const contextRaw = safeReadLayer(slug, 'context')
   if (contextRaw !== null) {

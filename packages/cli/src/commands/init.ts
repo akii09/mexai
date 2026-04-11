@@ -227,31 +227,17 @@ export async function runInit(options: { slug?: string; yes?: boolean; name?: st
     info('mexai.json written to this directory for auto-detection.')
     blank()
 
-    // Show the AI bootstrap prompt
-    console.log(chalk.bold('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'))
-    console.log(chalk.bold('  Bootstrap your AI context'))
-    console.log(chalk.bold('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'))
+    // Show the AI bootstrap prompt — plain text, no box chars, easy to copy
     blank()
-    console.log('Paste this into your AI editor (Cursor, Claude Code, etc.):')
+    console.log(chalk.bold.cyan('  Bootstrap your AI context'))
+    console.log(chalk.dim('  Copy the prompt below and paste it into your AI editor'))
+    console.log(chalk.dim('  (Cursor, Claude Code, OpenCode, etc.)'))
     blank()
-    console.log(chalk.cyan('┌─────────────────────────────────────────────────────────┐'))
-    console.log(chalk.cyan('│') + chalk.white.bold(` Mexai bootstrap for: ${answers.name.trim()}`).padEnd(58) + chalk.cyan('│'))
-    console.log(chalk.cyan('│') + '                                                         ' + chalk.cyan('│'))
-    console.log(chalk.cyan('│') + chalk.dim(' I just initialised a mexai context store for this      ') + chalk.cyan('│'))
-    console.log(chalk.cyan('│') + chalk.dim(' project. Please:                                        ') + chalk.cyan('│'))
-    console.log(chalk.cyan('│') + chalk.dim(' 1. Read the codebase carefully                          ') + chalk.cyan('│'))
-    console.log(chalk.cyan('│') + chalk.dim(' 2. Use context_save to fill in:                         ') + chalk.cyan('│'))
-    console.log(chalk.cyan('│') + chalk.dim('    - A detailed project identity paragraph               ') + chalk.cyan('│'))
-    console.log(chalk.cyan('│') + chalk.dim('    - The current development state                      ') + chalk.cyan('│'))
-    console.log(chalk.cyan('│') + chalk.dim('    - Key architectural decisions made so far            ') + chalk.cyan('│'))
-    console.log(chalk.cyan('│') + chalk.dim(' 3. Use the codebase tools to document:                  ') + chalk.cyan('│'))
-    console.log(chalk.cyan('│') + chalk.dim('    - Key files and their purposes                       ') + chalk.cyan('│'))
-    console.log(chalk.cyan('│') + chalk.dim('    - Code conventions and patterns                      ') + chalk.cyan('│'))
-    console.log(chalk.cyan('│') + chalk.dim('    - Files that must not be modified                    ') + chalk.cyan('│'))
-    console.log(chalk.cyan('│') + '                                                         ' + chalk.cyan('│'))
-    console.log(chalk.cyan('│') + chalk.dim(' Then run:  mexai diff   to review the changes           ') + chalk.cyan('│'))
-    console.log(chalk.cyan('│') + chalk.dim('            mexai commit  to apply them                  ') + chalk.cyan('│'))
-    console.log(chalk.cyan('└─────────────────────────────────────────────────────────┘'))
+    console.log(chalk.dim('  ── copy from here ──────────────────────────────────────'))
+    blank()
+    printBootstrapPrompt(answers.name.trim())
+    blank()
+    console.log(chalk.dim('  ── copy to here ────────────────────────────────────────'))
     blank()
 
     if (options.slug !== undefined) {
@@ -332,5 +318,46 @@ async function runInitNonInteractive(options: {
     info(`mexai.json written to this directory for auto-detection.`)
   } catch (err) {
     handleError(err)
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Bootstrap prompt helper
+// ---------------------------------------------------------------------------
+
+/**
+ * Print the AI bootstrap prompt as clean, copyable plain text.
+ * No box-drawing characters — only the actual prompt text that the user
+ * should paste into their AI editor.
+ */
+function printBootstrapPrompt(projectName: string): void {
+  const lines = [
+    `# Mexai context bootstrap — ${projectName}`,
+    ``,
+    `I just initialised a mexai context store for this project.`,
+    `Please help me fill it in properly:`,
+    ``,
+    `1. Read the codebase carefully (explore files, imports, config).`,
+    ``,
+    `2. Call context_save with:`,
+    `   - A detailed identity paragraph (what this project is, who it's for, goals)`,
+    `   - The current development state (what's being worked on right now)`,
+    `   - Key architectural decisions made so far (with rationale)`,
+    ``,
+    `3. Update the codebase map (codebase.md) with:`,
+    `   - Key files and their purposes`,
+    `   - Code conventions and patterns`,
+    `   - Files / directories that must not be modified`,
+    ``,
+    `After saving, tell me:`,
+    `  - What you wrote to each section`,
+    `  - Any gaps you couldn't fill from the codebase alone`,
+    ``,
+    `I will then run:`,
+    `  mexai diff    — to review the staged changes`,
+    `  mexai commit  — to apply them`,
+  ]
+  for (const line of lines) {
+    console.log(`  ${line}`)
   }
 }

@@ -1,11 +1,16 @@
 /**
- * MCP server — wires all tools and resources.
+ * MCP server — wires all tools.
  * Thin adapter over @mexai/core. No business logic here.
+ *
+ * Design note: mexai exposes context via Tools only (context_read,
+ * context_save, codebase_read, rules_read, context_list). MCP Resources
+ * are intentionally omitted — they require a stable URI scheme and domain
+ * that doesn't add value over the tools. Use context_read instead.
  */
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod'
-import { ContextSourceSchema, LayerSchema, compose, getActive } from '@mexai/core'
+import { ContextSourceSchema, LayerSchema } from '@mexai/core'
 import type { McpToolResult } from '@mexai/core'
 import { handleContextRead } from './tools/context-read.js'
 import { handleContextSave } from './tools/context-save.js'
@@ -22,15 +27,6 @@ function toCallResult(result: McpToolResult) {
   return {
     content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
     isError: !result.success,
-  }
-}
-
-/** Safe compose for resources — returns fallback text on error. */
-function safeCompose(slug: string, opts: Parameters<typeof compose>[1], fallback: string): string {
-  try {
-    return compose(slug, opts).text
-  } catch {
-    return fallback
   }
 }
 
@@ -116,56 +112,6 @@ export function createServer(): McpServer {
   }, () => {
     return toCallResult(handleContextList())
   })
-
-  // ── Resources ─────────────────────────────────────────────────────────────
-
-  server.registerResource('mexai-context', 'mexai://context',
-    { title: 'Project Context', description: 'Layer 1 — identity, current state, decisions, open threads (250 token ceiling)', mimeType: 'text/markdown' },
-    (uri) => {
-      const active = getActive()
-      if (active === undefined) {
-        return { contents: [{ uri: uri.toString(), mimeType: 'text/plain', text: 'No active project. Run `mexai load <slug>` to set one.' }] }
-      }
-      const text = safeCompose(active, { layers: ['context'], maxTokens: 250 }, 'Error reading context layer.')
-      return { contents: [{ uri: uri.toString(), mimeType: 'text/markdown', text }] }
-    }
-  )
-
-  server.registerResource('mexai-codebase', 'mexai://codebase',
-    { title: 'Codebase Map', description: 'Layer 2 — structure, key files, conventions, patterns (300 token ceiling)', mimeType: 'text/markdown' },
-    (uri) => {
-      const active = getActive()
-      if (active === undefined) {
-        return { contents: [{ uri: uri.toString(), mimeType: 'text/plain', text: 'No active project.' }] }
-      }
-      const text = safeCompose(active, { layers: ['codebase'], maxTokens: 300 }, 'Error reading codebase layer.')
-      return { contents: [{ uri: uri.toString(), mimeType: 'text/markdown', text }] }
-    }
-  )
-
-  server.registerResource('mexai-rules', 'mexai://rules',
-    { title: 'Agent Rules', description: 'Layer 3 — code quality, security, consistency rules (150 token ceiling)', mimeType: 'text/markdown' },
-    (uri) => {
-      const active = getActive()
-      if (active === undefined) {
-        return { contents: [{ uri: uri.toString(), mimeType: 'text/plain', text: 'No active project.' }] }
-      }
-      const text = safeCompose(active, { layers: ['rules'], maxTokens: 150 }, 'Error reading rules layer.')
-      return { contents: [{ uri: uri.toString(), mimeType: 'text/markdown', text }] }
-    }
-  )
-
-  server.registerResource('mexai-all', 'mexai://all',
-    { title: 'Full Context', description: 'All three layers — rules → context → codebase (700 token ceiling)', mimeType: 'text/markdown' },
-    (uri) => {
-      const active = getActive()
-      if (active === undefined) {
-        return { contents: [{ uri: uri.toString(), mimeType: 'text/plain', text: 'No active project.' }] }
-      }
-      const text = safeCompose(active, { maxTokens: 700 }, 'Error reading context.')
-      return { contents: [{ uri: uri.toString(), mimeType: 'text/markdown', text }] }
-    }
-  )
 
   return server
 }

@@ -1,0 +1,48 @@
+/* mexai docs — custom styles */
+
+:root {
+  --sl-color-accent-low: #1a1a2e;
+  --sl-color-accent: #6c63ff;
+  --sl-color-accent-high: #a29bfe;
+  --sl-color-white: #ffffff;
+  --sl-color-gray-1: #e8e8f0;
+  --sl-color-gray-2: #c0bfd4;
+  --sl-color-gray-3: #8880a8;
+  --sl-color-gray-4: #4a4670;
+  --sl-color-gray-5: #2d2b50;
+  --sl-color-gray-6: #1a1830;
+  --sl-color-black: #0d0c1a;
+}
+
+:root[data-theme='light'] {
+  --sl-color-accent-low: #ede9ff;
+  --sl-color-accent: #6c63ff;
+  --sl-color-accent-high: #3d35c8;
+}
+
+/* Hero enhancements */
+.hero {
+  padding-block: 4rem;
+}
+
+/* Code blocks */
+.expressive-code pre {
+  border-radius: 8px;
+}
+
+/* Command badges in CLI reference */
+.command-badge {
+  display: inline-block;
+  font-family: var(--sl-font-mono);
+  font-size: 0.875rem;
+  background: var(--sl-color-accent-low);
+  color: var(--sl-color-accent-high);
+  padding: 0.125rem 0.5rem;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+/* Status badges */
+.badge-clean { color: #00b894; }
+.badge-staged { color: #fdcb6e; }
+.badge-dirty { color: #e17055; }

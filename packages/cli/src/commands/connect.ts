@@ -39,11 +39,23 @@ interface ConnectAnswers {
   exportFiles: boolean
 }
 
-/** MCP server config block written into editor config files. */
-const MCP_SERVER_ENTRY = {
+/** MCP server entry for editors that use the { command, args } format (Cursor, Claude Code). */
+const MCP_SERVER_ENTRY_STDIO = {
   command: 'mexai',
   args: ['serve'],
-  env: {},
+}
+
+/** MCP server entry for VS Code (requires type: "stdio"). */
+const MCP_SERVER_ENTRY_VSCODE = {
+  type: 'stdio',
+  command: 'mexai',
+  args: ['serve'],
+}
+
+/** MCP server entry for OpenCode (uses type: "local" and array command). */
+const MCP_SERVER_ENTRY_OPENCODE = {
+  type: 'local',
+  command: ['mexai', 'serve'],
 }
 
 export async function runConnect(options: ConnectOptions): Promise<void> {
@@ -158,51 +170,58 @@ function writeMcpConfig(editor: 'cursor' | 'claude-code' | 'vscode' | 'opencode'
   }
 }
 
-/** Cursor: .cursor/mcp.json in the project root. */
-function writeCursorConfig(projectRoot: string): void {
-  const cursorDir = path.join(projectRoot, '.cursor')
-  const configPath = path.join(cursorDir, 'mcp.json')
-  fs.mkdirSync(cursorDir, { recursive: true })
+/** Cursor: ~/.cursor/mcp.json (global) — uses { command, args } format. */
+function writeCursorConfig(_projectRoot: string): void {
+  const configDir = path.join(os.homedir(), '.cursor')
+  const configPath = path.join(configDir, 'mcp.json')
+  fs.mkdirSync(configDir, { recursive: true })
   const existing = readJsonSafe(configPath) ?? {}
   const servers = (existing.mcpServers as Record<string, unknown> | undefined) ?? {}
-  servers.mexai = MCP_SERVER_ENTRY
+  servers.mexai = MCP_SERVER_ENTRY_STDIO
   existing.mcpServers = servers
   fs.writeFileSync(configPath, JSON.stringify(existing, null, 2) + '\n', 'utf8')
 }
 
-/** Claude Code: ~/.claude/settings.json global MCP config. */
+/** Claude Code: ~/.claude/settings.json — uses { command, args } format under mcpServers. */
 function writeClaudeCodeConfig(_projectRoot: string): void {
   const claudeDir = path.join(os.homedir(), '.claude')
   const configPath = path.join(claudeDir, 'settings.json')
   fs.mkdirSync(claudeDir, { recursive: true })
   const existing = readJsonSafe(configPath) ?? {}
   const servers = (existing.mcpServers as Record<string, unknown> | undefined) ?? {}
-  servers.mexai = MCP_SERVER_ENTRY
+  servers.mexai = MCP_SERVER_ENTRY_STDIO
   existing.mcpServers = servers
   fs.writeFileSync(configPath, JSON.stringify(existing, null, 2) + '\n', 'utf8')
 }
 
-/** VS Code: .vscode/mcp.json in the project root. */
+/** VS Code: .vscode/mcp.json in the project root — uses { type: "stdio", command, args } format. */
 function writeVscodeConfig(projectRoot: string): void {
   const vscodeDir = path.join(projectRoot, '.vscode')
   const configPath = path.join(vscodeDir, 'mcp.json')
   fs.mkdirSync(vscodeDir, { recursive: true })
   const existing = readJsonSafe(configPath) ?? {}
   const servers = (existing.servers as Record<string, unknown> | undefined) ?? {}
-  servers.mexai = MCP_SERVER_ENTRY
+  servers.mexai = MCP_SERVER_ENTRY_VSCODE
   existing.servers = servers
   fs.writeFileSync(configPath, JSON.stringify(existing, null, 2) + '\n', 'utf8')
 }
 
-/** OpenCode: ~/.config/opencode/config.json. */
+/**
+ * OpenCode: ~/.config/opencode/config.json
+ * Uses `mcp` key (not `mcpServers`) with { type: "local", command: [...] } format.
+ */
 function writeOpencodeConfig(_projectRoot: string): void {
   const configDir = path.join(os.homedir(), '.config', 'opencode')
   const configPath = path.join(configDir, 'config.json')
   fs.mkdirSync(configDir, { recursive: true })
   const existing = readJsonSafe(configPath) ?? {}
-  const servers = (existing.mcpServers as Record<string, unknown> | undefined) ?? {}
-  servers.mexai = MCP_SERVER_ENTRY
-  existing.mcpServers = servers
+  // Remove legacy mcpServers key if present (written by older mexai versions)
+  if ('mcpServers' in existing) {
+    delete existing.mcpServers
+  }
+  const servers = (existing.mcp as Record<string, unknown> | undefined) ?? {}
+  servers.mexai = MCP_SERVER_ENTRY_OPENCODE
+  existing.mcp = servers
   fs.writeFileSync(configPath, JSON.stringify(existing, null, 2) + '\n', 'utf8')
 }
 

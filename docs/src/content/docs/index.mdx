@@ -1,0 +1,78 @@
+---
+title: mexai
+description: Local-first AI context manager. Keep every AI agent perfectly in sync with your project.
+template: splash
+hero:
+  tagline: Keep every AI agent perfectly in sync with your project. Local-first, git-backed, zero cloud required.
+  image:
+    file: ../../assets/logo-dark.svg
+  actions:
+    - text: Get started
+      link: /quick-start/
+      icon: right-arrow
+      variant: primary
+    - text: View on GitHub
+      link: https://github.com/mexai/mexai
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components'
+
+## Why mexai?
+
+Every AI session starts from scratch. You re-explain your stack, your decisions, your conventions. The agent gives inconsistent answers because it has no memory of what you've already decided.
+
+mexai fixes that.
+
+<CardGrid stagger>
+  <Card title="Three context layers" icon="document">
+    **Project context** (who you are), **codebase map** (how it's organised), and **agent rules** (how to write code here) — structured and version-controlled.
+  </Card>
+  <Card title="Pending diff model" icon="approve-check-circle">
+    AI changes are always **staged for your review** before being applied. `mexai diff` shows exactly what changed. `mexai commit` applies it.
+  </Card>
+  <Card title="MCP + flat files" icon="puzzle">
+    Works with **Cursor, Claude Code, VS Code, and OpenCode** via MCP. Falls back to `AGENTS.md` / `.cursorrules` for editors that don't support MCP.
+  </Card>
+  <Card title="Local-first, git-backed" icon="github">
+    Your context lives in `~/.mexai/projects/` as plain Markdown. **No cloud, no accounts, no API keys.** Full git history with `mexai log` and `mexai restore`.
+  </Card>
+</CardGrid>
+
+## Quick start
+
+```bash
+npm install -g mexai
+
+cd /path/to/your-project
+mexai init          # interactive setup wizard
+mexai map           # scan codebase
+mexai connect --editor cursor   # configure MCP
+```
+
+Then restart your editor. Your agent now reads your project context on every session.
+
+## The workflow
+
+```
+mexai init     →  project context store created
+mexai map      →  codebase.md generated from static scan
+mexai connect  →  MCP configured for your editor
+     ↓
+Agent reads context on every session via MCP
+Agent calls context_save when it learns something new
+     ↓
+mexai diff     →  review what changed
+mexai commit   →  apply it, create git commit
+```
+
+## Compatibility
+
+| Editor | MCP | Flat files |
+|---|---|---|
+| Cursor | ✓ | `.cursorrules` |
+| Claude Code | ✓ | `CLAUDE.md` |
+| VS Code | ✓ | `AGENTS.md` |
+| OpenCode | ✓ | `AGENTS.md` |
+| Any editor | — | `AGENTS.md` |
